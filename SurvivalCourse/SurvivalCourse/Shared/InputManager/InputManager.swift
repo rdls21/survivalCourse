@@ -11,6 +11,8 @@ import GameController
 
 final class InputManager {
     // Properties
+    // Direction intent properties
+    private var directionalInput: CGVector = .zero
     /// GameController property
     ///
     /// Unowned property means that this object is not created by this class
@@ -34,9 +36,50 @@ final class InputManager {
     @objc func controllerConnected(notification: NSNotification) {
         guard let controller = notification.object as? GCKeyboard else { return }
         print("Controller connected: \(controller.vendorName ?? "Unknown vendor")")
+        // Get the current keyboard input
+        guard let input: GCKeyboardInput = controller.keyboardInput else { return }
+        weak let weakInputManager = self
+        // Create change handlers for each one of the keys
+        input.button(forKeyCode: .upArrow)?.pressedChangedHandler = {
+            (_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+            guard let strongSelf = weakInputManager else { return }
+            strongSelf.directionalInput.dy += pressed ? 1 : -1; strongSelf.setNewDirection()
+        }
+        input.button(forKeyCode: .downArrow)?.pressedChangedHandler = {
+            (_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+            guard let strongSelf = weakInputManager else { return }
+            strongSelf.directionalInput.dy -= pressed ? 1 : -1; strongSelf.setNewDirection()
+        }
+        input.button(forKeyCode: .leftArrow)?.pressedChangedHandler = {
+            (_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+            guard let strongSelf = weakInputManager else { return }
+            strongSelf.directionalInput.dx += pressed ? 1 : -1; strongSelf.setNewDirection()
+        }
+        input.button(forKeyCode: .rightArrow)?.pressedChangedHandler = {
+            (_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+            guard let strongSelf = weakInputManager else { return }
+            strongSelf.directionalInput.dx -= pressed ? 1 : -1; strongSelf.setNewDirection()
+        }
+        // Shoot action
+        input.button(forKeyCode: .spacebar)?.pressedChangedHandler = {
+            (_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+            guard let strongSelf = weakInputManager else { return }
+            if pressed { strongSelf.spaceBarPressed() }
+        }
+    }
+    @objc func controllerDisconnected(notification: NSNotification) {
+        self.resetInputs()
     }
     
-    @objc func controllerDisconnected(notification: NSNotification) {
-        
+    // Keyboard Observers
+    func setNewDirection() {
+        gameScene.setNewDirection(from: directionalInput)
+    }
+    func spaceBarPressed() {
+        gameScene.shoot()
+    }
+    // Helper functions
+    func resetInputs() {
+        directionalInput = .zero
     }
 }

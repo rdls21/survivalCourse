@@ -12,7 +12,7 @@ final class GameController {
     unowned let view: SKView
     // Managers
     // Instead of an inline declaration, how would you initialize this lazy property inside the init?
-    lazy var inputManager: InputManager = .init(with: self)
+    private var inputManager: InputManager!
     // State Machine
     private var stateMachine: GKStateMachine!
     // States for the state machine
@@ -24,6 +24,8 @@ final class GameController {
         self.view = view
         // Once Self is ready, create the state machine
         setupStateMachine()
+        // Setup Game Controller
+        inputManager = .init(with: self)
     }
     // Setup
     private func setupStateMachine() {
@@ -33,7 +35,7 @@ final class GameController {
             gameplayState,
             creditsState
         ])
-        self.enterState(MainMenuState.self)
+        self.enterState(GameplayState.self)
     }
     // Public functions
     // State Transitions
@@ -45,5 +47,21 @@ final class GameController {
     /// Function intended for the GameManager State Machine
     func presentScene(_ scene: SKScene, with transition: SKTransition = .fade(withDuration: 0.25)) {
         view.presentScene(scene, transition: transition)
+    }
+    
+    // Controller Relay
+    func setNewDirection(from vector: CGVector) {
+        guard let currentState = stateMachine.currentState else { return }
+        if (!currentState.isEqual(gameplayState)) { return }
+        // Get current scene, must be
+        guard let scene = view.scene as? GameScene else { return }
+        // Pass the new vector
+        scene.updateDirectionalStick(from: vector)
+    }
+    func shoot() {
+        guard let currentState = stateMachine.currentState else { return }
+        if (!currentState.isEqual(to: gameplayState)) { return }
+        guard let scene = view.scene as? GameScene else { return }
+        scene.shoot()
     }
 }
